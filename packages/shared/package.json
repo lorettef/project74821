@@ -1,0 +1,16 @@
+{
+  "name": "@project74821/shared",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Shared TypeScript types generated from FastAPI OpenAPI schema",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "generate": "openapi-typescript http://localhost:8000/openapi.json -o src/types/api.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.0.0",
+    "typescript": "^5.5.0"
+  }
+}
