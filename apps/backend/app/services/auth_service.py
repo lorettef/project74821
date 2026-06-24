@@ -2,12 +2,15 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import structlog
+from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.exceptions import ConflictError, UnauthorizedError
 from app.core.security import (
+    ACCESS_TOKEN_TYPE,
+    REFRESH_TOKEN_TYPE,
     create_access_token,
     create_refresh_token,
     decode_token,
@@ -40,7 +43,7 @@ async def register_user(
     db.add(user)
     await db.flush()
 
-    logger.info("user_registered", user_id=str(user.id), phone=user.phone)
+    logger.info("user_registered", user_id=str(user.id))
 
     return await _create_token_pair(db, user)
 
@@ -84,8 +87,8 @@ async def refresh_access_token(
         raise UnauthorizedError("Refresh token expired")
 
     try:
-        payload = decode_token(refresh_token)
-    except Exception:
+        payload = decode_token(refresh_token, expected_type=REFRESH_TOKEN_TYPE)
+    except JWTError:
         raise UnauthorizedError("Invalid refresh token")
 
     user_id_str = payload.get("sub")
@@ -143,8 +146,8 @@ async def get_current_user(
     db: AsyncSession, token: str
 ) -> User:
     try:
-        payload = decode_token(token)
-    except Exception:
+        payload = decode_token(token, expected_type=ACCESS_TOKEN_TYPE)
+    except JWTError:
         raise UnauthorizedError("Invalid or expired access token")
 
     user_id_str = payload.get("sub")
