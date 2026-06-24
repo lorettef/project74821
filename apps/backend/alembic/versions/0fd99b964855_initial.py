@@ -6,16 +6,16 @@ Create Date: 2026-06-24 14:00:00.000000
 
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "0fd99b964855"
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -170,7 +170,7 @@ def upgrade() -> None:
         sa.Column("title", sa.String(500), nullable=False),
         sa.Column("content", sa.Text(), nullable=True),
         sa.Column("related_metrics", postgresql.JSONB(), nullable=True),
-        sa.Column("metadata", postgresql.JSONB(), nullable=True),  # model attr: extra_data
+        sa.Column("extra_data", postgresql.JSONB(), nullable=True),
         sa.Column("is_applied", sa.Boolean(), server_default=sa.text("false"), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.ForeignKeyConstraint(["company_id"], ["companies.id"], ondelete="CASCADE"),
@@ -195,9 +195,13 @@ def upgrade() -> None:
     op.create_index("ix_tasks_company_id", "tasks", ["company_id"])
     op.create_index("ix_tasks_status", "tasks", ["status"])
     op.create_index("ix_ai_advice_company_id", "ai_advice", ["company_id"])
+    op.create_index(
+        "ix_refresh_tokens_token_hash", "refresh_tokens", ["token_hash"], unique=True
+    )
 
 
 def downgrade() -> None:
+    op.drop_index("ix_refresh_tokens_token_hash")
     op.drop_index("ix_ai_advice_company_id")
     op.drop_index("ix_tasks_status")
     op.drop_index("ix_tasks_company_id")

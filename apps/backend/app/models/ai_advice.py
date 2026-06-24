@@ -19,7 +19,7 @@ class AIAdvice(Base):
     title: Mapped[str] = mapped_column(sa.String(500), nullable=False)
     content: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     related_metrics: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    extra_data: Mapped[dict | None] = mapped_column("metadata", JSONB, nullable=True)
+    extra_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     is_applied: Mapped[bool] = mapped_column(
         sa.Boolean, default=False, server_default=sa.false(), nullable=False
     )
