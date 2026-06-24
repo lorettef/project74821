@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -163,7 +163,7 @@ def migrate() -> None:
                     continue
                 rows.append({
                     "company_id": company_id,
-                    "recorded_at": safe_datetime(m.get("recorded_at")) or datetime.utcnow(),
+                    "recorded_at": safe_datetime(m.get("recorded_at")) or datetime.now(timezone.utc),
                     "mrr": m.get("mrr"),
                     "arr": m.get("arr"),
                     "customers": m.get("customers"),
@@ -282,8 +282,8 @@ def migrate() -> None:
                     "status": t.get("status", "todo"),
                     "due_date": safe_date(t.get("due_date")),
                     "tags": t.get("tags"),
-                    "created_at": safe_datetime(t.get("created_at")) or datetime.utcnow(),
-                    "updated_at": safe_datetime(t.get("updated_at")) or datetime.utcnow(),
+                    "created_at": safe_datetime(t.get("created_at")) or datetime.now(timezone.utc),
+                    "updated_at": safe_datetime(t.get("updated_at")) or datetime.now(timezone.utc),
                 })
             if rows:
                 conn.execute(pg_insert(tasks_table).values(rows))
@@ -309,9 +309,9 @@ def migrate() -> None:
                     "title": a.get("title", "Untitled Advice"),
                     "content": a.get("content"),
                     "related_metrics": a.get("related_metrics"),
-                    "metadata": a.get("extra_data"),
+                    "extra_data": a.get("extra_data"),
                     "is_applied": a.get("is_applied", False),
-                    "created_at": safe_datetime(a.get("created_at")) or datetime.utcnow(),
+                    "created_at": safe_datetime(a.get("created_at")) or datetime.now(timezone.utc),
                 })
             if rows:
                 conn.execute(pg_insert(advice_table).values(rows))
