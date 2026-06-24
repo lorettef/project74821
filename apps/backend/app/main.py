@@ -1,9 +1,26 @@
-import structlog
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+import time
+import uuid
 
+import structlog
+import structlog.contextvars
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import ValidationError
+from sqlalchemy.exc import IntegrityError
+from starlette.middleware.base import BaseHTTPMiddleware
+
+from app.api.v1.auth import router as auth_router
 from app.api.v1.health import router as health_router
 from app.core.config import settings
+from app.core.error_handlers import (
+    app_error_handler,
+    integrity_error_handler,
+    not_found_error_handler,
+    unhandled_exception_handler,
+    validation_error_handler,
+)
+from app.core.exceptions import AppError, NotFoundError
+from app.core.rate_limit import RateLimitMiddleware
 
 structlog.configure(
     processors=[
@@ -32,6 +49,8 @@ app = FastAPI(
     redoc_url="/redoc" if settings.DEMO_MODE else None,
 )
 
+app.add_middleware(RateLimitMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -40,7 +59,41 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        request_id = str(uuid.uuid4())
+        structlog.contextvars.bind_contextvars(request_id=request_id)
+        request.state.request_id = request_id
+        start = time.monotonic()
+
+        response = await call_next(request)
+
+        duration_ms = round((time.monotonic() - start) * 1000, 2)
+        client_ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "unknown")
+        logger.info(
+            "request",
+            request_id=request_id,
+            method=request.method,
+            path=request.url.path,
+            status_code=response.status_code,
+            duration_ms=duration_ms,
+            client_ip=client_ip,
+        )
+        structlog.contextvars.clear_contextvars()
+        return response
+
+
+app.add_middleware(RequestLoggingMiddleware)
+
+app.include_router(auth_router, prefix="/api/v1")
 app.include_router(health_router, prefix="/api/v1")
+
+app.add_exception_handler(ValidationError, validation_error_handler)
+app.add_exception_handler(IntegrityError, integrity_error_handler)
+app.add_exception_handler(NotFoundError, not_found_error_handler)
+app.add_exception_handler(AppError, app_error_handler)
+app.add_exception_handler(Exception, unhandled_exception_handler)
 
 
 @app.on_event("startup")
