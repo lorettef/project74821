@@ -4,7 +4,8 @@
 DNS is unreliable in this environment so pip-installing pytest /
 pytest-asyncio / aiosqlite is impossible.  This script manually
 orchestrates the same fixtures as :file:`conftest.py` and runs every
-test function in :file:`test_auth.py` and :file:`test_health.py`.
+test function in :file:`test_auth.py`, :file:`test_health.py`,
+and :file:`test_companies.py`.
 """
 from __future__ import annotations
 
@@ -61,30 +62,31 @@ async def main() -> int:
     client = await anext(client_gen)
 
     try:
-        # Discover tests from the two test modules.
+        # Discover tests from test modules.
         import tests.test_auth as auth_mod
         import tests.test_health as health_mod
+        import tests.test_companies as companies_mod
 
         auth_tests = list(_discover_test_funcs(auth_mod))
         health_tests = list(_discover_test_funcs(health_mod))
+        companies_tests = list(_discover_test_funcs(companies_mod))
 
-        # Also pick up TestAuthFlow class methods.
-        for name, cls in inspect.getmembers(auth_mod, inspect.isclass):
-            if name.startswith("Test"):
-                instance = cls()
-                for mname, method in inspect.getmembers(instance, inspect.iscoroutinefunction):
-                    if mname.startswith("test_"):
-                        auth_tests.append((f"{name}.{mname}", method))
+        # Also pick up class methods from each module.
+        def _collect_class_tests(mod):
+            collected = []
+            for name, cls in inspect.getmembers(mod, inspect.isclass):
+                if name.startswith("Test"):
+                    instance = cls()
+                    for mname, method in inspect.getmembers(instance, inspect.iscoroutinefunction):
+                        if mname.startswith("test_"):
+                            collected.append((f"{name}.{mname}", method))
+            return collected
 
-        # Also pick up TestHealth class methods.
-        for name, cls in inspect.getmembers(health_mod, inspect.isclass):
-            if name.startswith("Test"):
-                instance = cls()
-                for mname, method in inspect.getmembers(instance, inspect.iscoroutinefunction):
-                    if mname.startswith("test_"):
-                        health_tests.append((f"{name}.{mname}", method))
+        auth_tests += _collect_class_tests(auth_mod)
+        health_tests += _collect_class_tests(health_mod)
+        companies_tests += _collect_class_tests(companies_mod)
 
-        all_tests = auth_tests + health_tests
+        all_tests = auth_tests + health_tests + companies_tests
 
         passed = 0
         failed = 0
