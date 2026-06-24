@@ -1,3 +1,4 @@
+import json
 import time
 from collections import defaultdict
 
@@ -44,9 +45,16 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 count=len(self._buckets[key]),
                 limit=limit,
             )
+            error_body = json.dumps({
+                "error": {
+                    "code": "RATE_LIMIT_EXCEEDED",
+                    "message": "Too many requests",
+                    "details": [],
+                }
+            })
             return Response(
                 status_code=429,
-                content='{"error":{"code":"RATE_LIMIT_EXCEEDED","message":"Too many requests","details":[]}}',
+                content=error_body,
                 media_type="application/json",
             )
 
