@@ -1,13 +1,11 @@
-version: "3.9"
-
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: startup_engine
-      POSTGRES_PASSWORD: startup_engine_dev
-      POSTGRES_DB: startup_engine
+      POSTGRES_USER: ${POSTGRES_USER:-startup_engine}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-startup_engine_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-startup_engine}
     ports:
       - "5432:5432"
     volumes:
@@ -26,12 +24,12 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://startup_engine:startup_engine_dev@db:5432/startup_engine
-      JWT_SECRET: dev-secret-change-in-production
-      DEMO_MODE: "true"
-      GIGACHAT_CLIENT_ID: ""
-      GIGACHAT_CLIENT_SECRET: ""
-      DEBUG: "true"
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://startup_engine:startup_engine_dev@db:5432/startup_engine}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
+      DEMO_MODE: ${DEMO_MODE:-true}
+      GIGACHAT_CLIENT_ID: ${GIGACHAT_CLIENT_ID:-}
+      GIGACHAT_CLIENT_SECRET: ${GIGACHAT_CLIENT_SECRET:-}
+      DEBUG: ${DEBUG:-true}
     depends_on:
       db:
         condition: service_healthy
@@ -49,7 +47,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     depends_on:
       backend:
         condition: service_healthy
