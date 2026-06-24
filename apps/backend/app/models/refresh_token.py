@@ -14,7 +14,9 @@ class RefreshToken(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    token_hash: Mapped[str] = mapped_column(sa.String(255), nullable=False)
+    token_hash: Mapped[str] = mapped_column(
+        sa.String(255), unique=True, index=True, nullable=False
+    )
     expires_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True), nullable=False
     )

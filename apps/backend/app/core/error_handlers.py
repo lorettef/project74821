@@ -1,5 +1,6 @@
 import structlog
 from fastapi import Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
@@ -9,14 +10,20 @@ from app.core.exceptions import AppError, NotFoundError
 logger = structlog.get_logger(__name__)
 
 
-async def validation_error_handler(request: Request, exc: ValidationError) -> JSONResponse:
-    details = [
+def _format_validation_details(exc: ValidationError | RequestValidationError) -> list[dict]:
+    return [
         {
             "field": ".".join(str(loc) for loc in e["loc"]),
             "reason": e["msg"],
         }
         for e in exc.errors()
     ]
+
+
+async def validation_error_handler(
+    request: Request, exc: ValidationError | RequestValidationError
+) -> JSONResponse:
+    details = _format_validation_details(exc)
     logger.warning(
         "validation_error",
         path=request.url.path,

@@ -4,6 +4,7 @@ import uuid
 import structlog
 import structlog.contextvars
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
@@ -89,6 +90,7 @@ app.add_middleware(RequestLoggingMiddleware)
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(health_router, prefix="/api/v1")
 
+app.add_exception_handler(RequestValidationError, validation_error_handler)
 app.add_exception_handler(ValidationError, validation_error_handler)
 app.add_exception_handler(IntegrityError, integrity_error_handler)
 app.add_exception_handler(NotFoundError, not_found_error_handler)
